@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Diary</title>
+<style>
+:root{color-scheme:light;--ink:#000;--soft:#2b221a;--acc:#7a5230;--paper:#fffaf0;--desk:#e9dfcb;--card:#fff4dc;--rule:#d9c9ad;--marg:#b08968;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:inherit}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;position:relative;min-height:100vh}
+body.dk{background:var(--desk)}
+#bg{position:absolute;left:0;top:0;z-index:0;pointer-events:none}
+#app{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:14px 14px 70px}
+.hand,h1,h2{font-family:"Segoe Print","Bradley Hand","Marker Felt","Comic Sans MS",cursive}
+h1{font-size:34px;margin:4px 0 10px}h2{font-size:24px;margin:16px 0 8px;color:var(--acc)}
+.soft{color:var(--soft)}.sm{font-size:15px}
+button{font:inherit;font-size:17px;background:var(--card);color:var(--acc);border:2px solid var(--marg);border-radius:10px;padding:10px 16px;cursor:pointer}
+button.p{background:var(--acc);color:#fff4dc;border-color:#5c3d22}
+.x{padding:2px 10px;color:var(--soft)}
+input[type=text],textarea{font:inherit;color:var(--ink)}
+.tag{display:table;background:#d9c3a0;border:1px solid #b08968;border-radius:8px;padding:3px 12px}
+.pyr{display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0 6px}
+.pr{display:flex;justify-content:center;gap:6px}
+.st{width:min(104px,calc((100vw - 44px)/var(--n) - 6px));min-height:56px;padding:6px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;font-weight:700;overflow-wrap:anywhere;border:2px solid #8a7656;border-radius:10px 14px 9px 13px;box-shadow:inset 0 -4px 0 rgba(74,64,56,.15);cursor:pointer;user-select:none}
+.st.sel{outline:3px solid var(--ink)}
+.row{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;align-items:center}.row input[type=text]{flex:1;min-width:120px;padding:9px;border:2px solid var(--rule);border-radius:8px;background:#fff}
+.day{background:var(--card);border:2px solid var(--rule);border-radius:12px;padding:12px 14px;margin:10px 0;cursor:pointer}
+.day .n{font-size:32px;font-weight:700;line-height:1.15}
+.sheet{position:relative;background:var(--paper);border:2px solid var(--rule);border-radius:6px;padding:16px 14px 20px 46px;margin-top:12px;box-shadow:0 3px 10px rgba(74,64,56,.2);
+background-image:radial-gradient(circle at 88% 9%,#f3e6cc 0 24px,#dcc39d 25px 29px,transparent 30px),radial-gradient(circle at 12% 62%,#efdfc2 0 30px,#c9a676 31px 33px,transparent 34px)}
+.sheet::before{content:"";position:absolute;left:34px;top:0;bottom:0;width:2px;background:var(--marg);opacity:.6}
+.ruled{display:block;width:100%;border:0;outline:0;resize:none;overflow:hidden;background:repeating-linear-gradient(transparent 0 29px,var(--rule) 29px 30px);background-attachment:local;line-height:30px;padding:0 2px;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.cd{background:var(--card);border:2px solid var(--rule);border-radius:10px;padding:10px;cursor:pointer;overflow-wrap:anywhere}
+.cn{font-size:22px;font-weight:700;color:var(--acc)}.cp{font-size:15px;color:var(--soft)}.add{display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--acc)}
+.one{width:100%;padding:8px;border:0;border-bottom:2px solid var(--marg);background:transparent;outline:0}
+.ov{position:fixed;inset:0;background:rgba(40,30,20,.55);z-index:10;display:flex;align-items:center;justify-content:center;padding:12px}
+.md{background:var(--paper);border:2px solid var(--marg);border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow:auto;padding:16px}
+.md h2{margin-top:0}.ck{display:flex;justify-content:space-between;align-items:center;padding:4px 0}.ck label{flex:1}.ck input{width:20px;height:20px;accent-color:var(--acc)}
+.box{width:100%;border:2px solid var(--rule);border-radius:8px;padding:8px;font-size:14px;background:#fff}
+#warn{position:relative;z-index:2;background:var(--ink);color:#fff4dc;padding:8px 14px;text-align:center}
+</style></head><body>
+<div id="warn" hidden>⚠ This browser is not saving your diary. Use Backup now.</div>
+<canvas id="bg"></canvas><div id="app"></div>
+<script>
+const KEY='diary_data',DEF=['Art','Programming','Civil','Language','Novel','Exercise'],
+ST=['#c2b093','#b3a083','#cbbba0','#a99878','#bba98b','#b8a587'],
+SCRIB=['#d8c4a0','#b89b72','#8a6f4d','#5c4a3a','#2e2a24','#a89f91','#cdbfa3'];
+const $=s=>document.querySelector(s),uid=()=>Math.random().toString(36).slice(2,10),mk=n=>({id:uid(),name:n,text:''});
+let D,view=null,sel=null,mo=null;
+function load(){let r=null;try{r=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+D=r&&typeof r==='object'&&!Array.isArray(r)?r:{};D.entries=Array.isArray(D.entries)?D.entries:[];D.catalog=Array.isArray(D.catalog)?D.catalog:[...DEF]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D));$('#warn').hidden=true}catch(e){$('#warn').hidden=false}}
+const h=(t,a={},...k)=>{const e=document.createElement(t);for(const[n,v]of Object.entries(a)){if(n==='class')e.className=v;else if(n==='style')e.style.cssText=v;else if(n in e)e[n]=v;else e.setAttribute(n,v)}e.append(...k.flat().filter(x=>x!=null));return e};
+const fmt=i=>{const d=new Date(i);return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})};
+const nextDay=()=>Math.max(0,...D.entries.map(e=>e.day))+1;
+const grow=t=>{t.style.height='auto';t.style.height=t.scrollHeight+'px'};
+function ta(v,cls,on,ph){const t=h('textarea',{class:cls,rows:1,placeholder:ph||''});t.value=v||'';t.oninput=()=>{on(t.value);grow(t)};setTimeout(()=>grow(t),0);return t}
+function modal(...k){if(mo){mo.remove();mo=null}mo=h('div',{class:'ov'},h('div',{class:'md'},...k));mo.onmousedown=e=>{if(e.target===mo)close()};document.body.append(mo)}
+function close(){if(mo){mo.remove();mo=null}render()}
+function askYes(m,yes){modal(h('p',{},m),h('div',{class:'row'},h('button',{onclick:close},'Cancel'),h('button',{class:'p',onclick:()=>{close();yes()}},'Yes')))}
+function swap(a,b){if(a!==b){const c=D.catalog;[c[a],c[b]]=[c[b],c[a]];save()}sel=null;render()}
+function pyramid(){const c=D.catalog,p=h('div',{class:'pyr'});let i=0,r=1;
+while(i<c.length){const row=h('div',{class:'pr',style:'--n:'+r});for(let j=i;j<Math.min(i+r,c.length);j++)row.append(h('div',{class:'st'+(sel===j?' sel':''),style:'background:#d9c3a0',draggable:true,
+onclick:()=>sel===null?(sel=j,render()):swap(sel,j),ondragstart:e=>e.dataTransfer.setData('text',j),ondragover:e=>e.preventDefault(),ondrop:e=>{e.preventDefault();swap(+e.dataTransfer.getData('text'),j)}},c[j]));
+p.append(row);i+=r;r++}return p}
+function home(){const n=nextDay(),es=[...D.entries].sort((a,b)=>b.day-a.day);
+return[h('h1',{class:'tag'},'My Diary'),pyramid(),
+h('div',{class:'row'},h('button',{class:'p',onclick:newEntry},`+ New entry (Day ${n})`),h('button',{onclick:backup},'Backup')),
+h('div',{class:'soft sm tag'},'Last backup: '+(D.lastBackup?new Date(D.lastBackup).toLocaleDateString():'never')),
+...(es.length?es.map(e=>h('div',{class:'day',onclick:()=>{view=e.id;render();scrollTo(0,0)}},h('div',{class:'hand n'},'Day '+e.day),h('div',{class:'soft'},fmt(e.created)),h('div',{class:'soft sm'},e.cats.map(c=>c.name).join(' · ')||'no categories'))):[h('p',{class:'soft tag'},'No entries yet. Start your first day!')])]}
+function newEntry(){const last=D.entries.length?D.entries.reduce((a,b)=>b.day>a.day?b:a).cats.map(c=>c.name):[],on=new Set(last),n=nextDay();
+const fill=()=>{const inp=h('input',{type:'text',placeholder:'New choice…'});const add=()=>{const v=inp.value.trim();if(v&&!D.catalog.includes(v)){D.catalog.push(v);on.add(v);save();fill()}};inp.onkeydown=e=>{if(e.key==='Enter')add()};
+mo.firstChild.replaceChildren(h('h2',{},`Day ${n}: what did you do?`),...D.catalog.map(nm=>h('div',{class:'ck'},h('label',{},h('input',{type:'checkbox',checked:on.has(nm),onchange:e=>e.target.checked?on.add(nm):on.delete(nm)}),' '+nm),h('button',{class:'x',onclick:()=>{D.catalog=D.catalog.filter(x=>x!==nm);on.delete(nm);save();fill()}},'✕'))),
+h('div',{class:'row'},inp,h('button',{onclick:add},'Add')),
+h('div',{class:'row'},h('button',{onclick:close},'Cancel'),h('button',{class:'p',onclick:()=>{const e={id:uid(),day:n,created:new Date().toISOString(),summary:'',conclusion:'',cats:D.catalog.filter(x=>on.has(x)).map(mk)};D.entries.push(e);save();mo.remove();mo=null;view=e.id;render();scrollTo(0,0)}},'Start Day '+n)))};
+modal();fill()}
+function catModal(c,e){modal(h('input',{type:'text',class:'one hand',style:'font-size:24px;font-weight:700',value:c.name,oninput:v=>{c.name=v.target.value;save()}}),ta(c.text,'ruled',v=>{c.text=v;save()},'Write here…'),
+h('div',{class:'row'},h('button',{onclick:()=>askYes('Remove this category from this day?',()=>{e.cats=e.cats.filter(x=>x!==c);save();render()})},'Remove'),h('button',{class:'p',onclick:close},'Done')))}
+function day(){const e=D.entries.find(x=>x.id===view);if(!e){view=null;return home()}
+const cards=e.cats.map(c=>h('div',{class:'cd',onclick:()=>catModal(c,e)},h('div',{class:'hand cn'},c.name),h('div',{class:'cp'},c.text?(c.text.length>140?c.text.slice(0,140)+'…':c.text):'Tap to write…')));
+cards.push(h('div',{class:'cd add hand',onclick:()=>{const c=mk('New category');e.cats.push(c);save();catModal(c,e)}},'+ Add category'));
+return[h('button',{onclick:()=>{view=null;render();scrollTo(0,0)}},'← Back'),
+h('div',{class:'sheet'},h('div',{class:'hand',style:'font-size:32px;font-weight:700'},'Day '+e.day),h('div',{class:'soft'},fmt(e.created)),
+ta(e.summary,'ruled',v=>{e.summary=v;save()}),h('div',{class:'grid'},cards),h('h2',{},'Conclusion'),
+h('input',{type:'text',class:'one',value:e.conclusion||'',oninput:v=>{e.conclusion=v.target.value;save()}}),
+h('div',{class:'row',style:'margin-top:26px'},h('button',{onclick:()=>askYes('Delete this day permanently?',()=>{D.entries=D.entries.filter(x=>x!==e);save();view=null;render()})},'Delete this day')))]}
+function backup(){const t=h('textarea',{class:'box',rows:8}),msg=h('div',{class:'soft sm'});t.value=JSON.stringify(D,null,1);
+const stamp=()=>{D.lastBackup=new Date().toISOString();save()};
+modal(h('h2',{},'Backup'),h('p',{class:'soft sm'},'Copy or download this text to keep a backup. To restore or import your old diary_data.json, choose the file or paste its text, then tap Load.'),t,
+h('div',{class:'row'},h('button',{onclick:()=>{t.select();const f=()=>{try{document.execCommand('copy')}catch(e){}};navigator.clipboard?navigator.clipboard.writeText(t.value).catch(f):f();stamp();msg.textContent='Copied.'}},'Copy'),
+h('button',{onclick:()=>{const a=h('a',{href:URL.createObjectURL(new Blob([t.value],{type:'application/json'})),download:'diary_data.json'});document.body.append(a);a.click();a.remove();stamp();msg.textContent='Download started (if nothing happened, use Copy).'}},'Download')),
+h('input',{type:'file',accept:'.json,application/json',onchange:e=>{const r=new FileReader();r.onload=()=>{t.value=r.result;msg.textContent='File read. Tap Load to use it.'};r.readAsText(e.target.files[0])}}),msg,
+h('div',{class:'row'},h('button',{onclick:close},'Close'),h('button',{class:'p',onclick:()=>{let p;try{p=JSON.parse(t.value);if(!Array.isArray(p.entries))throw 0}catch(e){msg.textContent='That text is not a valid diary.';return}
+askYes(`Replace this diary with the loaded one (${p.entries.length} days)?`,()=>{D=p;D.catalog=Array.isArray(D.catalog)?D.catalog:[...DEF];view=null;save();render()})}},'Load')))}
+function render(){document.body.className=view?'dk':'';$('#app').replaceChildren(...(view?day():home()));requestAnimationFrame(bg)}
+/* background: coffee stains + shapes */
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function spots(W,H){const S=[],k=W<600?.7:1;for(let b=0;b*300<H;b++){const r=rng(b*31+7);for(let n=0;n<18;n++)for(let t=0;t<30;t++){const R=(22+r()*58)*k,x=r()*W,y=b*300+r()*300,hit=S.filter(q=>q.y>b*300-400&&Math.hypot(q.x-x,q.y-y)<q.R+R);
+if(hit.length<=1&&hit.every(q=>q.n===0)){hit.forEach(q=>q.n++);S.push({x,y,R,n:hit.length,s:Math.floor(r()*4e9)});break}}}return S}
+function shape(g,x,y,R,r){const col=SCRIB[r()*7|0],fill=r()<.5;g.save();g.translate(x,y);g.rotate((r()-.5)*1.2);g.strokeStyle=g.fillStyle=col;g.lineWidth=r()<.5?2:3;g.lineJoin='round';
+const F=()=>{if(fill){g.globalAlpha=.22;g.fill();g.globalAlpha=1}},P=(a,f)=>{g.beginPath();a.forEach(([u,v],i)=>i?g.lineTo(u,v):g.moveTo(u,v));g.closePath();if(f)F();g.stroke()},k=r()*6|0;
+if(k===0)P([[-.9*R,.7*R],[.9*R,.7*R],[0,-R]],1);
+else if(k===1){g.beginPath();g.arc(0,0,R,0,7);F();g.stroke()}
+else if(k===2){const s=R*.7;P([[-s,-s],[s,-s],[s,s],[-s,s]],1)}
+else if(k<5){let po,d;if(k===3){const s=R*.5;po=[[-s,-s],[s,-s],[s,s],[-s,s]];d=R*.45}else{const n=[3,5,6][r()*3|0],a=R*.5;po=[...Array(n)].map((_,j)=>[a*Math.cos(j*6.283/n-1.571),a*Math.sin(j*6.283/n-1.571)]);d=R*.5}
+const f=po.map(([u,v])=>[u-d/2,v+d/2]),bk=f.map(([u,v])=>[u+d,v-d]);P(bk,0);f.forEach((p,i)=>{g.beginPath();g.moveTo(...p);g.lineTo(...bk[i]);g.stroke()});P(f,1)}
+else{const by=R*.55,rx=R*.6;g.beginPath();g.moveTo(-rx,by);g.lineTo(0,-R);g.lineTo(rx,by);g.stroke();g.beginPath();g.ellipse(0,by,rx,R*.2,0,0,7);F();g.stroke()}
+g.restore()}
+let lastW=0,lastH=0;
+function bg(){const c=$('#bg'),W=document.documentElement.clientWidth;c.style.height='0';const H=Math.min(15000,Math.max(document.body.scrollHeight,innerHeight));
+if(W===lastW&&Math.abs(H-lastH)<20&&c.width)return c.style.height=lastH+'px';lastW=W;lastH=H;
+const d=Math.min(devicePixelRatio||1,1.5,15000/H);c.width=W*d;c.height=H*d;c.style.width=W+'px';c.style.height=H+'px';const g=c.getContext('2d');g.scale(d,d);
+const r=rng(99);for(let y=40;y<H;y+=420){const x=r()*W,a=32+r()*34,w=()=>a*(1+(r()-.5)*.14);g.beginPath();g.ellipse(x,y+r()*200,w(),w(),0,0,7);g.fillStyle='rgba(214,188,146,.35)';g.fill();g.lineWidth=6;g.strokeStyle='#dcc39d';g.stroke();g.lineWidth=2;g.strokeStyle='#c9a676';g.stroke()}
+spots(W,H).forEach(s=>{if(s.y<H+100)shape(g,s.x,s.y,s.R,rng(s.s))})}
+addEventListener('resize',()=>{document.querySelectorAll('textarea.ruled').forEach(grow);bg()});
+load();render();
+</script></body></html>
